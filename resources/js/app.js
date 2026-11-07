@@ -199,6 +199,7 @@ if (dashboard) {
     const openCreateDialog = () => {
         form.reset();
         form.elements.id.value = '';
+        imageInput.required = true;
         dashboard.querySelector('[data-dialog-title]').textContent = 'Produk baru';
         dashboard.querySelector('[data-image-required]').hidden = false;
         dashboard.querySelector('[data-upload-copy]').textContent = 'Pilih foto dari perangkat';
@@ -211,6 +212,7 @@ if (dashboard) {
     const openEditDialog = (product) => {
         form.reset();
         form.elements.id.value = product.id;
+        imageInput.required = false;
         form.elements.title.value = product.title;
         form.elements.description.value = product.description;
         form.elements.price.value = product.price;

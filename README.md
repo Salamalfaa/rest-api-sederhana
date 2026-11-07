@@ -1,66 +1,63 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Nusa Goods
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Nusa Goods adalah aplikasi katalog dan inventaris sederhana berbasis Laravel 12. Proyek ini mengikuti delapan tahap seri RESTful API SantriKoding: instalasi, model dan migration, API Resource, daftar data, tambah, detail, ubah, dan hapus produk. Aplikasi juga menyediakan dashboard berbahasa Indonesia, pencarian, pengurutan, pagination, ringkasan stok, serta unggah foto produk.
 
-## About Laravel
+## Kebutuhan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2 atau lebih baru dengan ekstensi PDO SQLite, fileinfo, dan GD
+- Composer
+- Node.js dan npm
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Menjalankan aplikasi
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+composer install
+npm install
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+npm run build
+php artisan serve
+```
 
-## Learning Laravel
+Buka `http://localhost:8000`. Untuk pengembangan frontend dengan hot reload, jalankan `npm run dev` di terminal terpisah dari `php artisan serve`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Database bawaan menggunakan SQLite di `database/database.sqlite`; foto yang diunggah disimpan pada disk publik di `storage/app/public/products` dan dapat diakses melalui `/storage`.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## REST API
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Semua endpoint berada di `/api` dan mengembalikan JSON.
 
-## Laravel Sponsors
+| Method | Endpoint | Fungsi |
+| --- | --- | --- |
+| `GET` | `/api/health` | Status API |
+| `GET` | `/api/products` | Daftar produk (`q`, `sort`, `per_page`, `page`) |
+| `POST` | `/api/products` | Tambah produk dengan `multipart/form-data` |
+| `GET` | `/api/products/{id}` | Detail produk |
+| `PUT` / `PATCH` | `/api/products/{id}` | Perbarui data produk |
+| `DELETE` | `/api/products/{id}` | Hapus produk dan foto unggahan |
+| `GET` | `/api/products/summary` | Jumlah produk, stok, dan nilai inventaris |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Data produk berisi `title`, `description`, `price` (bilangan bulat Rupiah), dan `stock`. Foto wajib saat membuat produk; format JPG, PNG, atau WEBP, maksimal 2 MB. Untuk mengubah foto melalui form-data, kirim `POST` dengan field `_method=PUT`; foto bersifat opsional untuk perubahan lainnya. Respons validasi menggunakan status `422`, dan ID yang tidak ditemukan menggunakan `404`.
 
-### Premium Partners
+Contoh menambahkan produk:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+curl -X POST http://localhost:8000/api/products \
+  -H "Accept: application/json" \
+  -F "title=Lampu meja Aira" \
+  -F "description=Lampu meja dengan cahaya hangat" \
+  -F "price=285000" \
+  -F "stock=12" \
+  -F "image=@lampu.jpg"
+```
 
-## Contributing
+Dokumentasi endpoint juga tersedia di `http://localhost:8000/api-docs`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Pengujian
 
-## Code of Conduct
+```bash
+php artisan test
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Tes API memakai database SQLite in-memory dan storage palsu, sehingga tidak mengubah data lokal.
