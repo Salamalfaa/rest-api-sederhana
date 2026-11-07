@@ -38,16 +38,23 @@ class ProductApiTest extends TestCase
 
         $productId = $created->json('data.id');
         $storedImage = $created->json('data.image');
+        $created->assertJsonPath('data.image_url', url('/storage/'.$storedImage));
         Storage::disk('public')->assertExists($storedImage);
 
         $this->getJson('/api/products?per_page=5')
             ->assertOk()
-            ->assertJsonPath('data.0.id', $productId)
-            ->assertJsonPath('meta.total', 1);
+            ->assertJsonPath('message', 'List Data Products')
+            ->assertJsonPath('data.data.0.id', $productId)
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.per_page', 5);
 
         $this->getJson("/api/products/{$productId}")
             ->assertOk()
             ->assertJsonPath('data.title', 'Lampu meja Aira');
+
+        $this->patchJson("/api/products/{$productId}", [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['product']);
 
         $this->patchJson("/api/products/{$productId}", [
             'title' => 'Lampu meja Aira Baru',

@@ -153,12 +153,12 @@ if (dashboard) {
 
         try {
             const payload = await request(`${apiUrl}/products?${params}`);
-            const products = payload.data;
+            const products = payload.data.data;
             productsById.clear();
             products.forEach((product) => productsById.set(product.id, product));
-            dashboard.querySelector('[data-product-count]').textContent = new Intl.NumberFormat('id-ID').format(payload.meta.total);
-            lastPage = payload.meta.last_page;
-            renderPagination(payload.meta);
+            dashboard.querySelector('[data-product-count]').textContent = new Intl.NumberFormat('id-ID').format(payload.data.total);
+            lastPage = payload.data.last_page;
+            renderPagination(payload.data);
 
             if (products.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><strong>${query ? 'Belum ada yang cocok' : 'Katalog masih kosong'}</strong>

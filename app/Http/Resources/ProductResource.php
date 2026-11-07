@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class ProductResource extends JsonResource
 {
@@ -14,8 +13,8 @@ class ProductResource extends JsonResource
         $imageUrl = filter_var($image, FILTER_VALIDATE_URL)
             ? $image
             : (str_starts_with($image, 'images/')
-                ? asset($image)
-                : Storage::disk('public')->url($image));
+                ? url("/{$image}")
+                : url('/storage/'.$image));
 
         return [
             'id' => $this->id,

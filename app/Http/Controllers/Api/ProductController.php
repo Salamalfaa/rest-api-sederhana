@@ -32,7 +32,7 @@ class ProductController extends Controller
             'title_asc' => ['title', 'asc'],
         ];
         [$column, $direction] = $sorts[$request->query('sort', 'latest')] ?? $sorts['latest'];
-        $perPage = min(max((int) $request->query('per_page', 9), 1), 24);
+        $perPage = min(max((int) $request->query('per_page', 5), 1), 24);
 
         $products = $query
             ->orderBy($column, $direction)
@@ -40,9 +40,14 @@ class ProductController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return ProductResource::collection($products)->additional([
+        $products->through(
+            fn (Product $product) => (new ProductResource($product))->resolve($request)
+        );
+
+        return response()->json([
             'success' => true,
-            'message' => 'Daftar produk berhasil dimuat.',
+            'message' => 'List Data Products',
+            'data' => $products,
         ]);
     }
 

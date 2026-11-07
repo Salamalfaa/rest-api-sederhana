@@ -125,7 +125,6 @@
 
             <footer class="page-footer"><span>© 2026 Nusa Goods Studio</span><span>Dirancang untuk tumbuh, dibuat untuk kamu <b>✳</b></span></footer>
         </main>
-    </div>
 
     <dialog class="product-dialog" data-product-dialog aria-labelledby="dialog-title">
         <form class="dialog-form" data-product-form>
@@ -154,5 +153,6 @@
     </dialog>
 
     <div class="toast" data-toast role="status" aria-live="polite"></div>
+    </div>
 </body>
 </html>
