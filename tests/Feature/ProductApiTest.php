@@ -19,6 +19,19 @@ class ProductApiTest extends TestCase
         Storage::fake('public');
     }
 
+    public function test_api_root_lists_available_endpoints(): void
+    {
+        $this->getJson('/api')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Nusa Goods REST API')
+            ->assertJsonPath('data.health', url('/api/health'))
+            ->assertJsonPath('data.products.list', url('/api/products'))
+            ->assertJsonPath('data.products.summary', url('/api/products/summary'))
+            ->assertJsonPath('data.products.update.methods.0', 'PUT')
+            ->assertJsonPath('data.documentation', url('/api-docs'));
+    }
+
     public function test_products_can_be_created_listed_viewed_updated_and_deleted(): void
     {
         $image = UploadedFile::fake()->image('lampu.jpg');

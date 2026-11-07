@@ -31,7 +31,7 @@ Setelah persiapan selesai, jalankan server:
 php artisan serve
 ```
 
-Biarkan terminal tersebut tetap terbuka. Buka `http://localhost:8000` untuk dashboard dan `http://localhost:8000/api-docs` untuk dokumentasi API. Jika terminal server ditutup, jalankan lagi `php artisan serve`. Untuk hot reload saat mengubah CSS/JavaScript, jalankan `npm run dev` pada terminal VS Code kedua.
+Biarkan terminal tersebut tetap terbuka. Buka `http://localhost:8000` untuk dashboard, `http://localhost:8000/api` untuk melihat indeks endpoint API, dan `http://localhost:8000/api-docs` untuk dokumentasi lengkap. Jika terminal server ditutup, jalankan lagi `php artisan serve`. Untuk hot reload saat mengubah CSS/JavaScript, jalankan `npm run dev` pada terminal VS Code kedua.
 
 Database bawaan menggunakan SQLite di `database/database.sqlite`; foto yang diunggah disimpan pada disk publik di `storage/app/public/products` dan dapat diakses melalui `/storage`.
 
@@ -39,7 +39,7 @@ Database bawaan menggunakan SQLite di `database/database.sqlite`; foto yang diun
 
 1. Buka **Postman Desktop** dari menu Start. Jika belum terpasang, unduh dari [postman.com/downloads](https://www.postman.com/downloads/) atau jalankan `winget install --id Postman.Postman --exact`.
 2. Pastikan server Laravel sedang berjalan pada port `8000`.
-3. Klik **New → HTTP** (atau buka tab request baru), pilih method **GET**, lalu masukkan `http://localhost:8000/api/products`.
+3. Klik **New → HTTP** (atau buka tab request baru), pilih method **GET**, lalu masukkan `http://localhost:8000/api` untuk melihat indeks endpoint, atau `http://localhost:8000/api/products` untuk daftar produk.
 4. Di tab **Headers**, tambahkan `Accept` dengan nilai `application/json`.
 5. Klik **Send**. Respons yang benar memiliki status **200 OK**, berisi `"success": true`, `"message": "List Data Products"` dan objek pagination di dalam `"data"`.
 
@@ -66,7 +66,7 @@ Setelah `POST`, salin nilai `data.id` dari respons untuk dipakai di request deta
 
 ## REST API
 
-Semua endpoint berada di `/api` dan mengembalikan JSON.
+Semua endpoint berada di `/api` dan mengembalikan JSON. Buka `http://localhost:8000/api` untuk melihat indeks endpoint yang tersedia beserta tautan dokumentasi.
 
 | Method | Endpoint | Fungsi |
 | --- | --- | --- |

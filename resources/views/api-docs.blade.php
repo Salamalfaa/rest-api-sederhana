@@ -26,7 +26,7 @@
             <section class="docs-hero"><div class="eyebrow"><span class="eyebrow-line"></span> DEVELOPER SPACE</div><h1>API yang simpel.<br><span>Produk yang tertata.</span></h1><p>Kelola katalog Nusa Goods dari aplikasi apa pun. Endpoint REST mengembalikan JSON, tervalidasi, dan siap digunakan.</p><div class="docs-badges"><span><i></i> Laravel 12</span><span>JSON REST</span><span>Tanpa autentikasi</span></div></section>
             <section class="docs-content">
                 <div class="docs-section-title"><div><span class="section-kicker">MULAI DI SINI</span><h2>Base URL & respons</h2></div></div>
-                <div class="code-panel"><div class="code-panel-head"><span>BASE URL</span><span class="code-live"><i></i> ONLINE</span></div><code>{{ url('/api') }}</code><p>Setiap respons memakai <code>application/json</code>. Kirim header <code>Accept: application/json</code> untuk menerima pesan validasi terstruktur.</p></div>
+                <div class="code-panel"><div class="code-panel-head"><span>BASE URL</span><span class="code-live"><i></i> ONLINE</span></div><code>{{ url('/api') }}</code><p>Buka <a href="{{ url('/api') }}" target="_blank" rel="noreferrer"><code>GET /api</code></a> untuk melihat indeks endpoint yang tersedia. Setiap respons memakai <code>application/json</code>. Kirim header <code>Accept: application/json</code> untuk menerima pesan validasi terstruktur.</p></div>
 
                 <div class="docs-section-title endpoint-title"><div><span class="section-kicker">ENDPOINT</span><h2>Operasi produk</h2></div><span class="endpoint-count">6 ROUTE</span></div>
                 <div class="endpoint-list">
