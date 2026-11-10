@@ -17,6 +17,8 @@ if (dashboard) {
     const productsById = new Map();
     let currentPage = 1;
     let lastPage = 1;
+    let lastActivityId = null;
+    let syncInProgress = false;
     let searchTimer;
     let toastTimer;
 
@@ -81,6 +83,66 @@ if (dashboard) {
         }
     };
 
+    const loadActivities = async () => {
+        const activityList = dashboard.querySelector('[data-activity-list]');
+
+        try {
+            const payload = await request(`${apiUrl}/activities?limit=5`);
+            const activities = payload.data;
+            lastActivityId = activities[0]?.id ?? null;
+
+            if (activities.length === 0) {
+                activityList.innerHTML = '<div class="activity-empty">Belum ada aktivitas. Perubahan katalog akan tercatat di sini.</div>';
+                return;
+            }
+
+            const fieldLabels = {
+                title: 'Nama produk',
+                description: 'Deskripsi',
+                price: 'Harga',
+                stock: 'Stok',
+                image: 'Foto',
+            };
+            const formatValue = (field, value) => {
+                if (field === 'price') return money(value);
+                if (field === 'stock') return `${new Intl.NumberFormat('id-ID').format(value)} unit`;
+                const text = String(value ?? '—');
+                return text.length > 36 ? `${text.slice(0, 36)}…` : text;
+            };
+
+            activityList.innerHTML = activities.map((activity) => {
+                const descriptions = {
+                    created: 'ditambahkan ke katalog',
+                    updated: 'mengalami perubahan',
+                    deleted: 'dihapus dari katalog',
+                };
+                const changes = Object.entries(activity.changes || {}).map(([field, values]) => {
+                    const label = fieldLabels[field] || field;
+                    return `${label}: ${formatValue(field, values.from)} → ${formatValue(field, values.to)}`;
+                });
+                const description = changes.length
+                    ? changes.join(' · ')
+                    : descriptions[activity.action] || 'mengalami aktivitas';
+                const createdAt = new Date(activity.created_at).toLocaleString('id-ID', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                });
+
+                return `<article class="activity-item">
+                    <span class="activity-marker ${escapeHtml(activity.action)}" aria-hidden="true"></span>
+                    <div class="activity-copy">
+                        <div><strong>${escapeHtml(activity.product_title)}</strong><span>${escapeHtml(descriptions[activity.action] || 'mengalami aktivitas')}</span></div>
+                        <p>${escapeHtml(description)}</p>
+                        <time datetime="${escapeHtml(activity.created_at)}">${escapeHtml(createdAt)}</time>
+                    </div>
+                </article>`;
+            }).join('');
+        } catch (error) {
+            console.error('Aktivitas katalog gagal dimuat.', error);
+            activityList.innerHTML = `<div class="activity-empty activity-error">Aktivitas tidak dapat dimuat: ${escapeHtml(error.message)}</div>`;
+        }
+    };
+
     const productCard = (product) => {
         const stockState = product.stock === 0
             ? ['Habis', 'out-of-stock']
@@ -140,9 +202,11 @@ if (dashboard) {
         addButton('›', currentPage + 1, currentPage >= lastPage, false, 'Halaman berikutnya');
     };
 
-    const loadProducts = async (page = 1) => {
+    const loadProducts = async (page = 1, { silent = false } = {}) => {
         currentPage = page;
-        grid.innerHTML = '<div class="loading-state"><span class="spinner"></span><span>Menyiapkan katalog…</span></div>';
+        if (!silent) {
+            grid.innerHTML = '<div class="loading-state"><span class="spinner"></span><span>Menyiapkan katalog…</span></div>';
+        }
         const params = new URLSearchParams({
             page: String(page),
             per_page: '9',
@@ -153,6 +217,10 @@ if (dashboard) {
 
         try {
             const payload = await request(`${apiUrl}/products?${params}`);
+            if (page > payload.data.last_page && page > 1) {
+                return loadProducts(payload.data.last_page, { silent });
+            }
+
             const products = payload.data.data;
             productsById.clear();
             products.forEach((product) => productsById.set(product.id, product));
@@ -173,6 +241,7 @@ if (dashboard) {
             });
         } catch (error) {
             console.error('Katalog gagal dimuat.', error);
+            if (silent) return;
             dashboard.querySelector('[data-pagination-label]').textContent = 'Katalog gagal dimuat';
             dashboard.querySelector('[data-pagination]').replaceChildren();
             grid.innerHTML = `<div class="error-state"><strong>Katalog belum bisa dibuka</strong><span>${escapeHtml(error.message)}</span>
@@ -254,7 +323,7 @@ if (dashboard) {
             });
             dialog.close();
             showToast(id ? 'Perubahan produk berhasil disimpan.' : 'Produk baru berhasil ditambahkan.');
-            await Promise.all([loadProducts(id ? currentPage : 1), loadSummary()]);
+            await Promise.all([loadProducts(id ? currentPage : 1), loadSummary(), loadActivities()]);
         } catch (error) {
             console.error('Produk gagal disimpan.', error);
             showFormErrors(error);
@@ -294,7 +363,7 @@ if (dashboard) {
         try {
             await request(`${apiUrl}/products/${product.id}`, { method: 'DELETE' });
             showToast('Produk berhasil dihapus.');
-            await Promise.all([loadProducts(currentPage), loadSummary()]);
+            await Promise.all([loadProducts(currentPage), loadSummary(), loadActivities()]);
         } catch (error) {
             console.error('Produk gagal dihapus.', error);
             showToast(error.message, true);
@@ -308,6 +377,7 @@ if (dashboard) {
     });
 
     sortInput.addEventListener('change', () => loadProducts(1));
+    dashboard.querySelector('[data-refresh-activities]')?.addEventListener('click', loadActivities);
     dashboard.querySelector('[data-focus-search]')?.addEventListener('click', () => searchInput.focus());
     dashboard.addEventListener('keydown', (event) => {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -316,6 +386,32 @@ if (dashboard) {
         }
     });
 
+    const refreshExternalChanges = async () => {
+        if (syncInProgress || document.hidden) return;
+        syncInProgress = true;
+
+        try {
+            const payload = await request(`${apiUrl}/activities?limit=1`);
+            const latestActivityId = payload.data[0]?.id ?? null;
+
+            if (latestActivityId !== lastActivityId) {
+                await Promise.all([
+                    loadProducts(currentPage, { silent: true }),
+                    loadSummary(),
+                    loadActivities(),
+                ]);
+            }
+        } catch (error) {
+            console.error('Sinkronisasi katalog gagal.', error);
+        } finally {
+            syncInProgress = false;
+        }
+    };
+
     loadProducts();
     loadSummary();
+    loadActivities();
+    window.setInterval(refreshExternalChanges, 5000);
+    document.addEventListener('visibilitychange', refreshExternalChanges);
+    window.addEventListener('focus', refreshExternalChanges);
 }

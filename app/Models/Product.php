@@ -9,6 +9,8 @@ class Product extends Model
 {
     use HasFactory;
 
+    protected $appends = ['image_url'];
+
     protected $fillable = [
         'image',
         'title',
@@ -23,5 +25,14 @@ class Product extends Model
             'price' => 'integer',
             'stock' => 'integer',
         ];
+    }
+
+    public function getImageUrlAttribute(): string
+    {
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
+            return $this->image;
+        }
+
+        return url('/storage/'.$this->image);
     }
 }

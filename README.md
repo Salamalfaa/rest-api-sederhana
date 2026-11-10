@@ -39,9 +39,17 @@ Database bawaan menggunakan SQLite di `database/database.sqlite`; foto yang diun
 
 1. Buka **Postman Desktop** dari menu Start. Jika belum terpasang, unduh dari [postman.com/downloads](https://www.postman.com/downloads/) atau jalankan `winget install --id Postman.Postman --exact`.
 2. Pastikan server Laravel sedang berjalan pada port `8000`.
-3. Klik **New → HTTP** (atau buka tab request baru), pilih method **GET**, lalu masukkan `http://localhost:8000/api` untuk melihat indeks endpoint, atau `http://localhost:8000/api/products` untuk daftar produk.
-4. Di tab **Headers**, tambahkan `Accept` dengan nilai `application/json`.
-5. Klik **Send**. Respons yang benar memiliki status **200 OK**, berisi `"success": true`, `"message": "List Data Products"` dan objek pagination di dalam `"data"`.
+3. Di Postman, pilih **Import → File** dan impor `postman/Nusa-Goods.postman_collection.json`. Pastikan variabel `baseUrl` bernilai `http://localhost:8000/api`.
+4. Jalankan **Daftar produk** (`GET /api/products/`) untuk mencoba pencarian (`q`), pengurutan (`sort`), dan pagination (`per_page`, `page`). Request ini juga memilih `productId` pertama yang tampil jika ID aktif kosong atau sudah tidak ada; **Ringkasan inventaris** dan **Aktivitas terbaru** untuk endpoint baca. Garis miring di akhir URL daftar didukung.
+5. Untuk CRUD, jalankan **Buat produk**, pilih gambar pada field `image`, lalu klik **Send**. ID dari respons sukses disimpan otomatis sebagai `productId`; setelah itu gunakan **Detail produk aktif**, **Ubah produk aktif (PATCH sebagian)**, **Ubah produk aktif (PUT penuh)**, **Ubah produk aktif (PUT form-data)**, atau **Ubah foto produk aktif**. Untuk PUT form-data, biarkan Postman mengatur `Content-Type` beserta boundary secara otomatis. Hapus permanen dilakukan dengan **Hapus produk aktif**. Untuk produk yang sudah ada, ubah `productId` di variabel collection ke ID dari **Daftar produk**. ID yang tidak ada memang menghasilkan `404`.
+6. Setelah perubahan berhasil, jalankan **Daftar produk** untuk membaca keadaan katalog terbaru di Postman. Postman menampilkan respons terakhir dari request yang dikirim, jadi jalankan ulang request daftar untuk memuat keadaan server terbaru. Dashboard yang sedang terbuka memeriksa perubahan API otomatis setiap 5 detik. Semua client harus memakai `baseUrl` dan database Laravel yang sama.
+7. Untuk request manual, gunakan header `Accept: application/json`. Endpoint API mengembalikan error terstruktur tanpa stack trace, termasuk untuk ID yang tidak ada.
+
+**Penting:** `POST http://localhost:8000/api/products` membuat produk baru; `POST http://localhost:8000/api/products/1` tidak didukung dan mengembalikan `405` beserta daftar method yang benar. Gunakan `PUT` atau `PATCH` untuk memperbarui. ID `1` hanya berfungsi jika produk tersebut ada di database. Jika belum ada, buat produk dahulu atau pilih ID dari hasil request **Daftar produk**. Jika Anda memilih reset database, `php artisan migrate:fresh --seed` menghapus semua data lalu memuat enam produk contoh.
+
+Request DELETE harus memakai URL produk tertentu, seperti `DELETE http://localhost:8000/api/products/1`, dan tidak memerlukan Body. Jangan kirim DELETE ke `/api/products/` tanpa ID. Koleksi Postman mempertahankan ID terakhir setelah penghapusan; jalankan **Daftar produk** untuk memilih ID valid berikutnya atau buat produk baru. Request detail, PUT, dan DELETE koleksi dilewati jika ID belum dipilih.
+
+Pada PHP 8.4 atau lebih baru, parser HTTP Symfony/Laravel mendukung PUT/PATCH multipart langsung. Middleware API memberi respons yang jelas pada versi PHP lama yang belum mendukungnya. Untuk PHP tersebut, gunakan request **Ubah foto produk aktif** dengan `POST` dan field `_method=PUT`; PUT JSON tetap didukung.
 
 Contoh respons lebih lengkap dapat dilihat dengan `?per_page=5`:
 
@@ -77,8 +85,11 @@ Semua endpoint berada di `/api` dan mengembalikan JSON. Buka `http://localhost:8
 | `PUT` / `PATCH` | `/api/products/{id}` | Perbarui data produk |
 | `DELETE` | `/api/products/{id}` | Hapus produk dan foto unggahan |
 | `GET` | `/api/products/summary` | Jumlah produk, stok, dan nilai inventaris |
+| `GET` | `/api/activities?limit=10` | Riwayat aktivitas tambah, ubah, dan hapus produk (maksimal 50) |
 
 Data produk berisi `title`, `description`, `price` (bilangan bulat Rupiah), dan `stock`. Foto wajib saat membuat produk; format JPG, PNG, atau WEBP, maksimal 2 MB. Untuk mengubah foto melalui form-data, kirim `POST` dengan field `_method=PUT`; foto bersifat opsional untuk perubahan lainnya. Respons validasi menggunakan status `422`, dan ID yang tidak ditemukan menggunakan `404`.
+
+Dashboard berkomunikasi langsung dengan endpoint REST yang sama, sehingga produk dapat ditambah, dicari, diubah, dan dihapus melalui website. Setiap perubahan dicatat pada endpoint aktivitas dan dapat diperiksa dari Postman tanpa menginput ulang data. Riwayat ini menyimpan jenis perubahan, nama produk, waktu, dan nilai field yang berubah.
 
 Contoh menambahkan produk:
 

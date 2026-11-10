@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "d35a2dd2-217b-465e-baf8-4a56e2d03d35",
+    "name": "Nusa Goods REST API",
+    "description": "Koleksi untuk menguji daftar, detail, tambah, ubah, hapus, ringkasan, dan jejak aktivitas produk.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "productId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Daftar produk",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/?q=&sort=latest&per_page=9&page=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", ""],
+          "query": [
+            { "key": "q", "value": "" },
+            { "key": "sort", "value": "latest" },
+            { "key": "per_page", "value": "9" },
+            { "key": "page", "value": "1" }
+          ]
+        },
+        "description": "Daftar produk sekaligus menyimpan productId pertama yang tampil jika ID aktif kosong atau sudah tidak ada. Request detail, PUT, dan DELETE koleksi memakai ID tersebut."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Daftar produk berhasil dimuat', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.data).to.be.an('array');",
+              "    const products = response.data.data;",
+              "    const selectedId = pm.collectionVariables.get('productId');",
+              "    if (products.length === 0) {",
+              "        pm.collectionVariables.unset('productId');",
+              "    } else if (!products.some(product => String(product.id) === selectedId)) {",
+              "        pm.collectionVariables.set('productId', String(products[0].id));",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Detail produk aktif",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "Jalankan Buat produk agar productId terisi otomatis, atau isi variabel collection productId dengan ID yang ada. URL harus berakhir dengan ID, misalnya /products/1."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid sebelum mengirim request.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detail produk ditemukan', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.id).to.eql(Number(pm.collectionVariables.get('productId')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Buat produk",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "title", "value": "Produk dari Postman", "type": "text" },
+            { "key": "description", "value": "Produk contoh yang dibuat melalui koleksi Postman.", "type": "text" },
+            { "key": "price", "value": "125000", "type": "text" },
+            { "key": "stock", "value": "10", "type": "text" },
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["products"]
+        },
+        "description": "Pilih file JPG, PNG, atau WEBP maksimal 2 MB untuk field image. ID produk dari respons akan disimpan ke productId."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produk berhasil dibuat', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.id).to.exist;",
+              "    pm.collectionVariables.set('productId', String(response.data.id));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ubah produk aktif (PATCH sebagian)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stock\": 8\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "Perbarui produk berdasarkan productId. Jangan hapus segmen ID dari URL."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid sebelum mengirim request.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produk berhasil diperbarui', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().success).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ubah produk aktif (PUT penuh)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Produk dari Postman diperbarui\",\n  \"description\": \"Data produk diperbarui melalui PUT.\",\n  \"price\": 150000,\n  \"stock\": 8\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "PUT JSON untuk memperbarui produk berdasarkan productId. Jangan hapus segmen ID dari URL."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid sebelum mengirim request.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produk berhasil diperbarui dengan PUT', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().success).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ubah produk aktif (PUT form-data)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "title", "value": "Produk dari Postman - form-data", "type": "text" },
+            { "key": "description", "value": "Diperbarui melalui PUT multipart/form-data.", "type": "text" },
+            { "key": "price", "value": "175000", "type": "text" },
+            { "key": "stock", "value": "8", "type": "text" },
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "PUT multipart langsung didukung. Pilih file di field image jika ingin mengganti foto. Hapus baris image jika hanya memperbarui teks/angka. Jangan set Content-Type manual; biarkan Postman mengatur boundary."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid sebelum mengirim request.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('PUT form-data berhasil dan tersimpan', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.expect(response.data.title).to.eql('Produk dari Postman - form-data');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ubah foto produk aktif",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "_method", "value": "PUT", "type": "text" },
+            { "key": "image", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "Pilih foto pengganti JPG, PNG, atau WEBP maksimal 2 MB. Laravel menggunakan _method=PUT untuk menerima unggahan. productId harus berisi ID produk yang ada."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid sebelum mengirim request.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Foto produk berhasil diperbarui', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().success).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hapus produk aktif",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "{{productId}}"]
+        },
+        "description": "Penghapusan permanen. URL harus berakhir dengan ID, misalnya /products/1. Kosongkan tab Body; DELETE tidak memerlukan form-data. productId tetap disimpan setelah delete agar URL tidak berubah menjadi /products/."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get('productId');",
+              "if (!id || !/^\\d+$/.test(id)) {",
+              "    console.error('Isi productId dengan ID produk yang valid. Jalankan Buat produk atau pilih ID dari Daftar produk.');",
+              "    pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Produk berhasil dihapus', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.eql(true);",
+              "    pm.collectionVariables.set('lastDeletedProductId', String(pm.collectionVariables.get('productId')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ringkasan inventaris",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/products/summary",
+          "host": ["{{baseUrl}}"],
+          "path": ["products", "summary"]
+        }
+      }
+    },
+    {
+      "name": "Aktivitas terbaru",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activities?limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["activities"],
+          "query": [
+            { "key": "limit", "value": "10" }
+          ]
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Aktivitas dapat dilacak', function () {",
+                "    pm.response.to.have.status(200);",
+                "    const response = pm.response.json();",
+                "    pm.expect(response.success).to.eql(true);",
+                "    pm.expect(response.data).to.be.an('array');",
+                "});"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

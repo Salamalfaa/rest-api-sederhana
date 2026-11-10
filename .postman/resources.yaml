@@ -1,9 +1,5 @@
-# Use this workspace to collaborate
 workspace:
   id: b78fbd27-6c58-4063-877f-ede15185422e
-
-# All resources in the `postman/` folder are automatically registered in Local View.
-# Point to additional files outside the `postman/` folder to register them individually. Example:
-#localResources:
-#  collections:
-#    - ../tests/E2E Test Collection/
+cloudResources:
+  globals:
+    ../postman/globals/workspace.globals.yaml: b05df768-643d-4a6d-84ea-4867bea3cfae

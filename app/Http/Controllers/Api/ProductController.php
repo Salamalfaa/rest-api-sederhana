@@ -2,172 +2,170 @@
 
 namespace App\Http\Controllers\Api;
 
-//import model Product
-use App\Models\Product;
-
 use App\Http\Controllers\Controller;
-
-//import resource ProductResource
 use App\Http\Resources\ProductResource;
-
-//import Http request
+use App\Models\Product;
+use App\Models\ProductActivity;
 use Illuminate\Http\Request;
-
-//import facade Validator
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
-//import facade Storage
-use Illuminate\Support\Facades\Storage;
-
 class ProductController extends Controller
-{    
-    /**
-     * index
-     *
-     * @return void
-     */
-    public function index()
+{
+    public function index(Request $request)
     {
-        //get all products
-        $products = Product::latest()->paginate(5);
+        $query = Product::query();
+        $search = trim((string) $request->query('q', ''));
 
-        //return collection of products as a resource
-        return new ProductResource(true, 'List Data Products', $products);
+        if ($search !== '') {
+            $query->where(function ($products) use ($search) {
+                $products->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        match ($request->query('sort', 'latest')) {
+            'oldest' => $query->oldest(),
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            'title_asc' => $query->orderBy('title')->orderByDesc('id'),
+            default => $query->latest(),
+        };
+
+        $perPage = min(max((int) $request->query('per_page', 9), 1), 50);
+
+        return new ProductResource(true, 'List Data Products', $query->paginate($perPage));
     }
 
-    /**
-     * store
-     *
-     * @param  mixed $request
-     * @return void
-     */
     public function store(Request $request)
     {
-        //define validation rules
-        $validator = Validator::make($request->all(), [
-            'image'         => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'title'         => 'required',
-            'description'   => 'required',
-            'price'         => 'required|numeric',
-            'stock'         => 'required|numeric',
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'title' => ['required', 'string', 'max:120'],
+            'description' => ['required', 'string', 'max:2000'],
+            'price' => ['required', 'integer', 'min:0'],
+            'stock' => ['required', 'integer', 'min:0'],
         ]);
 
-        //check if validation fails
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        $validated['image'] = $request->file('image')->store('products', 'public');
+        $product = DB::transaction(function () use ($validated) {
+            $product = Product::create($validated);
+            ProductActivity::create([
+                'product_id' => $product->id,
+                'product_title' => $product->title,
+                'action' => 'created',
+                'changes' => [],
+            ]);
 
-        //upload image
-        $image = $request->file('image');
-        $image->storeAs('products', $image->hashName());
+            return $product;
+        });
 
-        //create product
-        $product = Product::create([
-            'image'         => $image->hashName(),
-            'title'         => $request->title,
-            'description'   => $request->description,
-            'price'         => $request->price,
-            'stock'         => $request->stock,
-        ]);
-
-        //return response
-        return new ProductResource(true, 'Data Product Berhasil Ditambahkan!', $product);
+        return (new ProductResource(true, 'Data Product Berhasil Ditambahkan!', $product))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    /**
-     * show
-     *
-     * @param  mixed $id
-     * @return void
-     */
-    public function show($id)
+    public function show(int $id)
     {
-        //find product by ID
-        $product = Product::find($id);
-
-        //return single product as a resource
-        return new ProductResource(true, 'Detail Data Product!', $product);
+        return new ProductResource(true, 'Detail Data Product!', Product::findOrFail($id));
     }
 
-    /**
-     * update
-     *
-     * @param  mixed $request
-     * @param  mixed $id
-     * @return void
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
-        //define validation rules
-        $validator = Validator::make($request->all(), [
-            'image'         => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'title'         => 'required',
-            'description'   => 'required',
-            'price'         => 'required|numeric',
-            'stock'         => 'required|numeric',
+        $product = Product::findOrFail($id);
+        $input = $request->except('_method');
+        $validator = Validator::make($input, [
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'title' => ['sometimes', 'required', 'string', 'max:120'],
+            'description' => ['sometimes', 'required', 'string', 'max:2000'],
+            'price' => ['sometimes', 'required', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'required', 'integer', 'min:0'],
         ]);
 
-        //check if validation fails
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+        $validator->after(function ($validator) use ($input) {
+            if ($input === []) {
+                $validator->errors()->add('product', 'Tambahkan minimal satu perubahan produk.');
+            }
+        });
 
-        //find product by ID
-        $product = Product::find($id);
+        $validated = $validator->validate();
+        $previousValues = $product->only(['title', 'description', 'price', 'stock']);
+        $oldImage = $product->image;
 
-        //check if image is not empty
         if ($request->hasFile('image')) {
-
-            //delete old image
-            Storage::delete('products/' . basename($product->image));
-
-            //upload image
-            $image = $request->file('image');
-            $image->storeAs('products', $image->hashName());
-
-            //update product with new image
-            $product->update([
-                'image'         => $image->hashName(),
-                'title'         => $request->title,
-                'description'   => $request->description,
-                'price'         => $request->price,
-                'stock'         => $request->stock,
-            ]);
-
+            $validated['image'] = $request->file('image')->store('products', 'public');
         } else {
-
-            //update product without image
-            $product->update([
-                'title'         => $request->title,
-                'description'   => $request->description,
-                'price'         => $request->price,
-                'stock'         => $request->stock,
-            ]);
+            unset($validated['image']);
         }
 
-        //return response
+        $product = DB::transaction(function () use ($product, $validated, $previousValues, $oldImage) {
+            $product->update($validated);
+            $changes = [];
+
+            foreach (array_keys($validated) as $field) {
+                if (array_key_exists($field, $previousValues) && $previousValues[$field] != $product->$field) {
+                    $changes[$field] = [
+                        'from' => $previousValues[$field],
+                        'to' => $product->$field,
+                    ];
+                } elseif ($field === 'image') {
+                    $changes['image'] = ['from' => $oldImage, 'to' => $product->image];
+                }
+            }
+
+            ProductActivity::create([
+                'product_id' => $product->id,
+                'product_title' => $product->title,
+                'action' => 'updated',
+                'changes' => $changes,
+            ]);
+
+            return $product->refresh();
+        });
+
+        if ($oldImage !== $product->image) {
+            Storage::disk('public')->delete($oldImage);
+        }
+
         return new ProductResource(true, 'Data Product Berhasil Diubah!', $product);
     }
 
-    /**
-     * destroy
-     *
-     * @param  mixed $id
-     * @return void
-     */
-    public function destroy($id)
+    public function destroy(int $id)
     {
+        $product = Product::findOrFail($id);
 
-        //find product by ID
-        $product = Product::find($id);
+        $image = $product->image;
+        DB::transaction(function () use ($product) {
+            ProductActivity::create([
+                'product_id' => $product->id,
+                'product_title' => $product->title,
+                'action' => 'deleted',
+                'changes' => [],
+            ]);
 
-        //delete image
-        Storage::delete('products/'.basename($product->image));
+            $product->delete();
+        });
 
-        //delete product
-        $product->delete();
+        Storage::disk('public')->delete($image);
 
-        //return response
         return new ProductResource(true, 'Data Product Berhasil Dihapus!', null);
+    }
+
+    public function summary()
+    {
+        $summary = Product::query()
+            ->selectRaw('COUNT(*) as product_count, COALESCE(SUM(stock), 0) as total_stock, COALESCE(SUM(price * stock), 0) as inventory_value')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ringkasan inventaris',
+            'data' => [
+                'product_count' => (int) $summary->product_count,
+                'total_stock' => (int) $summary->total_stock,
+                'inventory_value' => (int) $summary->inventory_value,
+            ],
+        ]);
     }
 }

@@ -25,6 +25,10 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg>
                     <span>Produk</span>
                 </a>
+                <a class="side-link" href="#activity">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-6 4 12 2-6h5"/><circle cx="12" cy="12" r="9"/></svg>
+                    <span>Aktivitas</span>
+                </a>
                 <a class="side-link" href="{{ route('api-docs') }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></svg>
                     <span>Dokumentasi API</span><span class="external-arrow">↗</span>
@@ -84,6 +88,19 @@
                     <div class="stat-foot"><span class="stat-indicator purple"></span> Harga × jumlah stok</div>
                     <div class="stat-watermark">03</div>
                 </article>
+            </section>
+
+            <section class="activity-section" id="activity" aria-labelledby="activity-title">
+                <div class="section-heading">
+                    <div>
+                        <div class="section-kicker">JEJAK KATALOG</div>
+                        <h2 id="activity-title">Aktivitas terbaru</h2>
+                    </div>
+                    <button class="text-link activity-refresh" type="button" data-refresh-activities>Muat ulang <span>↻</span></button>
+                </div>
+                <div class="activity-list" data-activity-list role="region" aria-label="Daftar aktivitas terbaru" tabindex="0" aria-live="polite">
+                    <div class="activity-empty">Memuat aktivitas…</div>
+                </div>
             </section>
 
             <section class="catalog-section" id="products">
