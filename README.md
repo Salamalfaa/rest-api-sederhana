@@ -2,6 +2,8 @@
 
 Nusa Goods adalah aplikasi katalog dan inventaris sederhana berbasis Laravel 12. Proyek ini mengikuti delapan tahap seri RESTful API SantriKoding: instalasi, model dan migration, API Resource, daftar data, tambah, detail, ubah, dan hapus produk. Aplikasi juga menyediakan dashboard berbahasa Indonesia, pencarian, pengurutan, pagination, ringkasan stok, serta unggah foto produk.
 
+DISUSUN OLEH : mjamilsalamalfaris Mahasiswa Universitas Hasyim Asy'ari
+
 ## Kebutuhan
 
 - PHP 8.2 atau lebih baru dengan ekstensi PDO SQLite, fileinfo, dan GD
