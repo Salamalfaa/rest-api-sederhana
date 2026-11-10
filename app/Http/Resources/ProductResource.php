@@ -7,25 +7,40 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductResource extends JsonResource
 {
+    //define properti
+    public $status;
+    public $message;
+    public $resource;
+
+    /**
+     * __construct
+     *
+     * @param  mixed $status
+     * @param  mixed $message
+     * @param  mixed $resource
+     * @return void
+     */
+    public function __construct($status, $message, $resource)
+    {
+        parent::__construct($resource);
+        $this->status  = $status;
+        $this->message = $message;
+    }
+
+    /**
+     * toArray
+     *
+     * @param  mixed $request
+     * @return array
+     */
     public function toArray(Request $request): array
     {
-        $image = (string) $this->image;
-        $imageUrl = filter_var($image, FILTER_VALIDATE_URL)
-            ? $image
-            : (str_starts_with($image, 'images/')
-                ? url("/{$image}")
-                : url('/storage/'.$image));
-
         return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'description' => $this->description,
-            'price' => $this->price,
-            'stock' => $this->stock,
-            'image' => $this->image,
-            'image_url' => $imageUrl,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'success'   => $this->status,
+            'message'   => $this->message,
+            'data'      => $this->resource
         ];
     }
+
+
 }
